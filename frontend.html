@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Recommendation System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and overrides */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide default select arrow for custom styling */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        /* Style for custom select arrow */
+        select.custom-select-arrow {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%236B7280' d='M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5rem 1.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-100 to-indigo-200 flex flex-col items-center p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-4xl mt-8">
+        <h1 class="text-4xl font-extrabold text-center text-purple-800 mb-8">
+            🎶 Music Recommender 🎶
+        </h1>
+
+        <!-- User ID Input (Simulated) -->
+        <div class="mb-6">
+            <label for="userIdInput" class="block text-lg font-semibold text-gray-700 mb-2">
+            
+            </label>
+            <input type="text" id="userIdInput" value="user123" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-800 text-base" placeholder="Enter your user ID">
+        </div>
+
+        <!-- Message Display -->
+        <div id="messageDisplay" class="p-4 rounded-lg text-center hidden mb-6">
+            <p id="messageText" class="font-semibold"></p>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden flex justify-center items-center mb-6">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <span class="ml-3 text-purple-700 font-medium">Loading...</span>
+        </div>
+
+        <!-- Recommendation Input Section -->
+        <div class="mb-8 p-6 bg-purple-50 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-purple-700 mb-4">Get Recommendations</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="genreSelect" class="block text-md font-medium text-gray-700 mb-1">Genre</label>
+                    <select id="genreSelect" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-800 text-sm custom-select-arrow">
+                        <option value="">Any Genre</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="artistInput" class="block text-md font-medium text-gray-700 mb-1">Artist</label>
+                    <input type="text" id="artistInput" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-800 text-sm" placeholder="e.g., Adele">
+                </div>
+                <div>
+                    <label for="textPreferenceInput" class="block text-md font-medium text-gray-700 mb-1">Mood/Keywords</label>
+                    <input type="text" id="textPreferenceInput" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-purple-500 focus:border-purple-500 text-gray-800 text-sm" placeholder="e.g., energetic pop">
+                </div>
+            </div>
+            <button id="getRecommendationsBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-purple-500 focus:ring-opacity-50">
+                Find My Music!
+            </button>
+        </div>
+
+        <!-- Recommended Songs Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-purple-700 mb-4">Recommended For You</h2>
+            <div id="recommendedSongsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Recommended songs will be loaded here -->
+                <p id="noRecommendations" class="col-span-full text-center text-gray-500 hidden">No recommendations found. Try different preferences!</p>
+            </div>
+        </div>
+
+        <!-- All Songs Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-purple-700 mb-4">All Available Songs</h2>
+            <div id="allSongsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- All songs will be loaded here -->
+            </div>
+        </div>
+
+        <!-- User History Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-purple-700 mb-4">Your Listening History</h2>
+            <div id="userHistoryList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- User history will be loaded here -->
+                <p id="noHistory" class="col-span-full text-center text-gray-500 hidden">Your listening history is empty. Listen to some songs!</p>
+            </div>
+        </div>
+
+        <!-- Disclaimer/Note -->
+        <div class="mt-8 text-center text-gray-500 text-sm">
+            <p>This system uses a simulated backend for demonstration purposes.</p>
+            <p>Recommendations are based on simple filtering and history.</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000'; // Ensure your Flask backend is running on this port
+
+        // Get DOM elements
+        const userIdInput = document.getElementById('userIdInput');
+        const messageDisplay = document.getElementById('messageDisplay');
+        const messageText = document.getElementById('messageText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const genreSelect = document.getElementById('genreSelect');
+        const artistInput = document.getElementById('artistInput');
+        const textPreferenceInput = document.getElementById('textPreferenceInput');
+        const getRecommendationsBtn = document.getElementById('getRecommendationsBtn');
+
+        const recommendedSongsList = document.getElementById('recommendedSongsList');
+        const noRecommendationsMessage = document.getElementById('noRecommendations');
+        const allSongsList = document.getElementById('allSongsList');
+        const userHistoryList = document.getElementById('userHistoryList');
+        const noHistoryMessage = document.getElementById('noHistory');
+
+        // Global variable to store all songs for easy lookup (e.g., getSongTitle)
+        let SONGS_DATA = [];
+
+        // --- Utility Functions ---
+
+        /**
+         * Shows a message to the user.
+         * @param {string} msg - The message text.
+         * @param {boolean} isSuccess - True for success (green), false for error (red).
+         */
+        function showMessage(msg, isSuccess) {
+            messageText.textContent = msg;
+            messageDisplay.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            if (isSuccess) {
+                messageDisplay.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                messageDisplay.classList.add('bg-red-100', 'text-red-800');
+            }
+            messageDisplay.classList.remove('hidden');
+        }
+
+        function hideMessage() {
+            messageDisplay.classList.add('hidden');
+        }
+
+        function showLoading() {
+            loadingIndicator.classList.remove('hidden');
+            hideMessage();
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.add('hidden');
+        }
+
+        /**
+         * Fetches data from the API.
+         * @param {string} endpoint - The API endpoint (e.g., '/songs').
+         * @param {object} options - Fetch API options (method, headers, body).
+         * @returns {Promise<object>} - The JSON response data.
+         * @throws {Error} - If the API call fails or returns an error.
+         */
+        async function fetchData(endpoint, options = {}) {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `API Error: ${response.status}`);
+                }
+                return data;
+            } catch (error) {
+                console.error(`Error fetching from ${endpoint}:`, error);
+                if (error.message.includes('Failed to fetch')) {
+                    showMessage(`Error: Could not connect to the backend server. Please ensure the Python Flask backend is running at ${API_BASE_URL}.`, false);
+                } else {
+                    showMessage(`Error: ${error.message}`, false);
+                }
+                throw error;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * Renders a list of songs into a specified container.
+         * @param {HTMLElement} container - The DOM element to render songs into.
+         * @param {Array<Object>} songs - An array of song objects.
+         * @param {boolean} showListenButton - Whether to show the "Listen" button.
+         */
+        function renderSongs(container, songs, showListenButton = false) {
+            container.innerHTML = ''; // Clear previous content
+            if (songs.length === 0) {
+                // Show specific message if container is for recommendations or history
+                if (container.id === 'recommendedSongsList') {
+                    noRecommendationsMessage.classList.remove('hidden');
+                } else if (container.id === 'userHistoryList') {
+                    noHistoryMessage.classList.remove('hidden');
+                }
+                return;
+            } else {
+                noRecommendationsMessage.classList.add('hidden');
+                noHistoryMessage.classList.add('hidden');
+            }
+
+            songs.forEach(song => {
+                const songCard = document.createElement('div');
+                songCard.className = 'bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200';
+                songCard.innerHTML = `
+                    <h3 class="text-lg font-bold text-gray-900">${song.title}</h3>
+                    <p class="text-sm text-gray-600">Artist: ${song.artist}</p>
+                    <p class="text-sm text-gray-600">Genre: ${song.genre}</p>
+                    ${showListenButton ? `<button data-song-id="${song.id}" class="listen-btn mt-3 bg-purple-500 hover:bg-purple-600 text-white text-sm py-1 px-3 rounded-md transition-colors duration-200">Listen</button>` : ''}
+                `;
+                container.appendChild(songCard);
+            });
+
+            if (showListenButton) {
+                container.querySelectorAll('.listen-btn').forEach(button => {
+                    button.addEventListener('click', async (event) => {
+                        const songId = event.target.dataset.songId;
+                        const userId = userIdInput.value.trim();
+                        if (!userId) {
+                            showMessage('Please enter a User ID to record listening history.', false);
+                            return;
+                        }
+                        try {
+                            await fetchData('/listen', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: userId, song_id: songId })
+                            });
+                            showMessage(`"${getSongTitle(songId)}" added to your history!`, true);
+                            loadUserHistory(); // Reload history after listening
+                        } catch (error) {
+                            // Error handled by fetchData
+                        }
+                    });
+                });
+            }
+        }
+
+        function getSongTitle(songId) {
+            const song = SONGS_DATA.find(s => s.id === songId);
+            return song ? song.title : 'Unknown Song';
+        }
+
+        // --- Data Loading Functions ---
+
+        async function loadAllSongs() {
+            try {
+                const songs = await fetchData('/songs');
+                // Store songs globally for easy lookup (e.g., getSongTitle)
+                SONGS_DATA = songs; // Assign directly
+                renderSongs(allSongsList, songs);
+            } catch (error) {
+                // Error handled by fetchData
+            }
+        }
+
+        async function loadGenres() {
+            try {
+                const genres = await fetchData('/genres');
+                // Clear existing options before adding new ones
+                genreSelect.innerHTML = '<option value="">Any Genre</option>'; 
+                genres.forEach(genre => {
+                    const option = document.createElement('option');
+                    option.value = genre;
+                    option.textContent = genre;
+                    genreSelect.appendChild(option);
+                });
+            } catch (error) {
+                // Error handled by fetchData
+            }
+        }
+
+        async function loadUserHistory() {
+            const userId = userIdInput.value.trim();
+            if (!userId) {
+                noHistoryMessage.classList.remove('hidden');
+                userHistoryList.innerHTML = '';
+                return;
+            }
+            try {
+                const history = await fetchData(`/user_history/${userId}`);
+                renderSongs(userHistoryList, history, false); // Don't show listen button for history
+            } catch (error) {
+                // Error handled by fetchData
+            }
+        }
+
+        // --- Event Listeners ---
+
+        getRecommendationsBtn.addEventListener('click', async () => {
+            const userId = userIdInput.value.trim();
+            const preferredGenre = genreSelect.value;
+            const preferredArtist = artistInput.value.trim();
+            const textPreference = textPreferenceInput.value.trim();
+
+            if (!userId) {
+                showMessage('Please enter a User ID to get recommendations.', false);
+                return;
+            }
+
+            try {
+                const recommendations = await fetchData('/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_id: userId,
+                        preferred_genre: preferredGenre || null,
+                        preferred_artist: preferredArtist || null,
+                        text_preference: textPreference || null
+                    })
+                });
+                renderSongs(recommendedSongsList, recommendations, true); // Show listen button for recommendations
+                showMessage('Recommendations loaded!', true);
+            } catch (error) {
+                // Error handled by fetchData
+                renderSongs(recommendedSongsList, [], true); // Clear recommendations on error
+            }
+        });
+
+        // Reload history when user ID changes
+        userIdInput.addEventListener('change', loadUserHistory);
+
+        // Initial data load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllSongs();
+            loadGenres();
+            loadUserHistory(); // Load initial history for default user
+        });
+
+    </script>
+</body>
+</html>
